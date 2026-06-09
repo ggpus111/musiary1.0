@@ -47,5 +47,8 @@ app.*.map.json
 # 로컬 머신 경로 포함 — 커밋 제외
 android/local.properties
 
+# Firebase 설정 (API 키 포함) — 커밋 제외
+android/app/google-services.json
+
 # Flutter 런타임 생성 파일
 .flutter-plugins
