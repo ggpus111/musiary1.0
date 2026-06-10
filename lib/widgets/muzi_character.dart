@@ -705,72 +705,86 @@ class _MuziBodyPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
-  // 반달 행복한 눈 (행복)
+  // 반짝이는 행복한 눈 (행복) — 별 반짝임 있는 눈
   void _drawHappyEye(Canvas canvas, Offset center, double w) {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     // 흰 눈 전체
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: w * 0.14, height: w * 0.15),
+      Rect.fromCenter(center: Offset.zero, width: w * 0.15, height: w * 0.16),
       Paint()..color = Colors.white,
     );
-    // 위 절반을 덮어 반달처럼
+    // 위 절반을 덮어 반달처럼 (찡긋)
     canvas.drawRect(
-      Rect.fromLTWH(-w * 0.09, -w * 0.1, w * 0.18, w * 0.09),
+      Rect.fromLTWH(-w * 0.09, -w * 0.1, w * 0.18, w * 0.08),
       Paint()..color = bodyColor,
     );
-    canvas.drawCircle(Offset(0, w * 0.02), w * 0.06, Paint()..color = const Color(0xFF5C3D2E));
-    canvas.drawCircle(Offset(w * 0.015, -w * 0.01), w * 0.02, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(0, w * 0.03), w * 0.062, Paint()..color = const Color(0xFF5C3D2E));
+    // 반짝임 큰 것 + 작은 것
+    canvas.drawCircle(Offset(w * 0.02, -w * 0.01), w * 0.025, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(-w * 0.02, w * 0.025), w * 0.014, Paint()..color = Colors.white);
     canvas.restore();
   }
 
-  // 촉촉한 그리움 눈 (그리움)
+  // 그리움 눈: 왼쪽=촉촉한 눈, 오른쪽=살짝 윙크 (꿈꾸는 표정)
   void _drawNostalgicEye(Canvas canvas, Offset center, double w, bool isLeft) {
+    if (!isLeft) {
+      // 오른쪽: 살짝 윙크 (∪ 모양)
+      final paint = Paint()
+        ..color = const Color(0xFF5C3D2E)
+        ..strokeWidth = w * 0.038
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      final path = Path()
+        ..moveTo(center.dx - w * 0.07, center.dy - w * 0.015)
+        ..quadraticBezierTo(center.dx, center.dy + w * 0.065, center.dx + w * 0.07, center.dy - w * 0.015);
+      canvas.drawPath(path, paint);
+      return;
+    }
+
+    // 왼쪽: 촉촉하게 반짝이는 눈
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: w * 0.14, height: w * 0.16),
+      Rect.fromCenter(center: Offset.zero, width: w * 0.15, height: w * 0.17),
       Paint()..color = Colors.white,
+    );
+    // 파란 눈물 기운
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(0, w * 0.02), width: w * 0.11, height: w * 0.09),
+      Paint()..color = const Color(0xFFDFEFFF),
     );
     canvas.drawCircle(Offset(0, w * 0.02), w * 0.065, Paint()..color = const Color(0xFF5C3D2E));
     // 큰 반짝임 (촉촉한 눈)
-    canvas.drawCircle(Offset(w * 0.025, -w * 0.02), w * 0.035,
+    canvas.drawCircle(Offset(w * 0.025, -w * 0.025), w * 0.038,
         Paint()..color = Colors.white.withValues(alpha: 0.95));
-    canvas.drawCircle(Offset(-w * 0.015, w * 0.02), w * 0.015,
+    canvas.drawCircle(Offset(-w * 0.02, w * 0.02), w * 0.018,
         Paint()..color = Colors.white.withValues(alpha: 0.7));
     canvas.restore();
-    // 왼쪽 눈 아래에 눈물 한 방울
-    if (isLeft) {
-      final tearPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.75);
-      final tearPath = Path()
-        ..moveTo(center.dx, center.dy + w * 0.09)
-        ..quadraticBezierTo(center.dx + w * 0.025, center.dy + w * 0.13, center.dx, center.dy + w * 0.16)
-        ..quadraticBezierTo(center.dx - w * 0.025, center.dy + w * 0.13, center.dx, center.dy + w * 0.09);
-      canvas.drawPath(tearPath, tearPaint);
-    }
+
+    // 눈물 한 방울
+    final tearPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.8);
+    final tearPath = Path()
+      ..moveTo(center.dx, center.dy + w * 0.09)
+      ..quadraticBezierTo(center.dx + w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.18)
+      ..quadraticBezierTo(center.dx - w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.09);
+    canvas.drawPath(tearPath, tearPaint);
   }
 
-  // 실눈 편안 (편안함) — 가느다란 선
+  // 작은 점 눈 (편안함) — ･ω･ 느낌의 귀여운 점 눈
   void _drawCalmEye(Canvas canvas, Offset center, double w) {
-    final paint = Paint()
-      ..color = const Color(0xFF5C3D2E)
-      ..strokeWidth = w * 0.032
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(center.dx - w * 0.065, center.dy),
-      Offset(center.dx + w * 0.065, center.dy),
-      paint,
+    // 흰 눈 배경
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: w * 0.12, height: w * 0.13),
+      Paint()..color = Colors.white,
     );
-    // 속눈썹 느낌
-    canvas.drawLine(
-      Offset(center.dx - w * 0.055, center.dy - w * 0.01),
-      Offset(center.dx - w * 0.07, center.dy - w * 0.035),
-      Paint()
-        ..color = const Color(0xFF5C3D2E).withValues(alpha: 0.5)
-        ..strokeWidth = w * 0.018
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke,
+    // 작고 동그란 동공
+    canvas.drawCircle(center, w * 0.05, Paint()..color = const Color(0xFF5C3D2E));
+    // 작은 반짝임
+    canvas.drawCircle(
+      Offset(center.dx + w * 0.01, center.dy - w * 0.01),
+      w * 0.018,
+      Paint()..color = Colors.white,
     );
   }
 
@@ -1018,19 +1032,32 @@ class _MuziBodyPainter extends CustomPainter {
             Paint()..color = Colors.grey.shade200..strokeWidth = w * 0.015..style = PaintingStyle.stroke);
         break;
 
-      // 즐거움: 크게 웃는 입 (ㅎ 모양)
+      // 즐거움: 얼굴 절반 웃는 입 + 치아 확실히 보임
       case EmotionType.joyful:
-        final path = Path()
-          ..moveTo(cx - w * 0.22, mouthY)
-          ..quadraticBezierTo(cx, mouthY + w * 0.17, cx + w * 0.22, mouthY);
-        canvas.drawPath(path, strokePaint..strokeWidth = w * 0.035);
+        final outerPath = Path()
+          ..moveTo(cx - w * 0.25, mouthY - w * 0.01)
+          ..quadraticBezierTo(cx, mouthY + w * 0.21, cx + w * 0.25, mouthY - w * 0.01);
+        canvas.drawPath(outerPath, strokePaint..strokeWidth = w * 0.038);
+        // 치아 칸 (더 넓게)
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, mouthY + w * 0.06), width: w * 0.3, height: w * 0.11),
-            const Radius.circular(4),
+            Rect.fromCenter(center: Offset(cx, mouthY + w * 0.07), width: w * 0.34, height: w * 0.13),
+            const Radius.circular(5),
           ),
           Paint()..color = Colors.white,
         );
+        // 치아 구분선 3개
+        final tLinePaint = Paint()
+          ..color = Colors.grey.shade300
+          ..strokeWidth = w * 0.012
+          ..style = PaintingStyle.stroke;
+        for (final dx in [-w * 0.09, 0.0, w * 0.09]) {
+          canvas.drawLine(
+            Offset(cx + dx, mouthY + w * 0.01),
+            Offset(cx + dx, mouthY + w * 0.13),
+            tLinePaint,
+          );
+        }
         break;
 
       // 행복: 따뜻한 미소
@@ -1056,28 +1083,23 @@ class _MuziBodyPainter extends CustomPainter {
         canvas.drawPath(path, strokePaint);
         break;
 
-      // 편안함: 작고 평화로운 미소 + 음표
+      // 편안함: ω 모양 (고양이 미소) — 귀엽고 평온한 느낌
       case EmotionType.calm:
-        final path = Path()
-          ..moveTo(cx - w * 0.11, mouthY)
-          ..quadraticBezierTo(cx, mouthY + w * 0.07, cx + w * 0.11, mouthY);
-        canvas.drawPath(path, strokePaint..strokeWidth = w * 0.025);
-        // 작은 음표
-        final notePaint = Paint()
-          ..color = Colors.white.withValues(alpha: 0.8)
-          ..strokeWidth = w * 0.02
+        final calmPaint = Paint()
+          ..color = const Color(0xFF5C3D2E)
+          ..strokeWidth = w * 0.028
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke;
-        canvas.drawLine(
-          Offset(cx + w * 0.28, mouthY - w * 0.08),
-          Offset(cx + w * 0.28, mouthY + w * 0.01),
-          notePaint,
-        );
-        canvas.drawCircle(
-          Offset(cx + w * 0.25, mouthY + w * 0.01),
-          w * 0.028,
-          Paint()..color = Colors.white.withValues(alpha: 0.8),
-        );
+        // 왼쪽 ω 곡선
+        final leftCurve = Path()
+          ..moveTo(cx - w * 0.14, mouthY - w * 0.01)
+          ..quadraticBezierTo(cx - w * 0.07, mouthY + w * 0.07, cx, mouthY - w * 0.01);
+        // 오른쪽 ω 곡선
+        final rightCurve = Path()
+          ..moveTo(cx, mouthY - w * 0.01)
+          ..quadraticBezierTo(cx + w * 0.07, mouthY + w * 0.07, cx + w * 0.14, mouthY - w * 0.01);
+        canvas.drawPath(leftCurve, calmPaint);
+        canvas.drawPath(rightCurve, calmPaint);
         break;
 
       // 바쁨: 일자 입 (긴장)
@@ -1188,14 +1210,25 @@ class _MuziBodyPainter extends CustomPainter {
         blushColor = const Color(0xFFE8A0A8);
     }
 
-    final blushPaint = Paint()..color = blushColor.withValues(alpha: alpha);
+    // 바깥 볼터치 (더 크고 부드럽게)
+    final blushPaint = Paint()..color = blushColor.withValues(alpha: alpha * 0.55);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx - w * 0.28, h * 0.53), width: w * 0.18, height: w * 0.09),
+      Rect.fromCenter(center: Offset(cx - w * 0.29, h * 0.51), width: w * 0.25, height: w * 0.14),
       blushPaint,
     );
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx + w * 0.28, h * 0.53), width: w * 0.18, height: w * 0.09),
+      Rect.fromCenter(center: Offset(cx + w * 0.29, h * 0.51), width: w * 0.25, height: w * 0.14),
       blushPaint,
+    );
+    // 안쪽 볼터치 (진한 포인트)
+    final innerBlushPaint = Paint()..color = blushColor.withValues(alpha: alpha);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx - w * 0.28, h * 0.51), width: w * 0.14, height: w * 0.08),
+      innerBlushPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx + w * 0.28, h * 0.51), width: w * 0.14, height: w * 0.08),
+      innerBlushPaint,
     );
   }
 
