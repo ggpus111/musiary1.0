@@ -42,7 +42,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
         loop: false,
         isLive: false,
         enableCaption: false,
-        hideControls: true,
+        // 컨트롤 표시 — Android Platform View는 ClipOval이 적용 안 되므로
+        // 여기서는 YouTube 기본 컨트롤을 숨기고 하단 커스텀 UI를 사용
+        hideControls: false,
         hideThumbnail: false,
         disableDragSeek: false,
         forceHD: false,
@@ -128,42 +130,58 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
         playerState == PlayerState.unknown ||
         playerState == PlayerState.cued;
 
+    // YoutubePlayerBuilder 필수 — fullscreen lifecycle 관리
     return YoutubePlayerBuilder(
       player: YoutubePlayer(
         controller: _controller,
         showVideoProgressIndicator: false,
+        // onEnded 는 listener 에서 처리
       ),
       builder: (context, player) {
         return Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  emotion.color,
-                  emotion.color.withValues(alpha: 0.7),
-                  Colors.black87,
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  _buildTopBar(context, emotion),
-                  const Spacer(),
-                  _buildAlbumArt(track, emotion, player, isPlaying),
-                  const SizedBox(height: 32),
-                  _buildTrackInfo(track),
-                  const SizedBox(height: 24),
-                  _buildProgressBar(),
-                  const SizedBox(height: 8),
-                  _buildControls(emotion, isPlaying, isLoading),
-                  const Spacer(),
-                  _buildPlaylist(emotion),
-                  const SizedBox(height: 20),
-                ],
-              ),
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Column(
+              children: [
+                _buildTopBar(context, emotion),
+
+                // ── YouTube 플레이어 ──────────────────────────────
+                // Android Platform View(WebView)는 Flutter 클리핑(ClipOval 등)이
+                // 적용되지 않으므로 ClipOval/Stack 없이 AspectRatio 직접 사용
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: player,
+                ),
+
+                // ── 트랙 정보 + 컨트롤 ─────────────────────────────
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          emotion.color.withValues(alpha: 0.85),
+                          Colors.black87,
+                        ],
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        _buildTrackInfo(track),
+                        const SizedBox(height: 16),
+                        _buildProgressBar(),
+                        const SizedBox(height: 4),
+                        _buildControls(emotion, isPlaying, isLoading),
+                        const Spacer(),
+                        _buildPlaylist(emotion),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -172,8 +190,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
   }
 
   Widget _buildTopBar(BuildContext context, Emotion emotion) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: [
           IconButton(
@@ -205,46 +224,6 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
     );
   }
 
-  Widget _buildAlbumArt(MusicTrack track, Emotion emotion, Widget player, bool isPlaying) {
-    return Container(
-      width: 220,
-      height: 220,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isPlaying ? Colors.white.withValues(alpha: 0.6) : Colors.transparent,
-          width: 3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: emotion.color.withValues(alpha: 0.5),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: ClipOval(
-        child: Stack(
-          children: [
-            // 썸네일 배경 (플레이어 로딩 전 표시)
-            CachedNetworkImage(
-              imageUrl: track.thumbnailUrl,
-              width: 220,
-              height: 220,
-              fit: BoxFit.cover,
-              errorWidget: (ctx, url, err) => Container(
-                color: emotion.lightColor,
-                child: Icon(Icons.music_note_rounded, color: emotion.color, size: 64),
-              ),
-            ),
-            // YouTube 플레이어 (동영상 + 오디오)
-            Positioned.fill(child: player),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTrackInfo(MusicTrack track) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -253,13 +232,13 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
           Text(
             track.title,
             style: const TextStyle(
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
-          Text(track.artist, style: const TextStyle(color: Colors.white60, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(track.artist, style: const TextStyle(color: Colors.white70, fontSize: 13)),
         ],
       ),
     );
@@ -269,8 +248,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
     final position = _controller.value.position;
     final duration = _controller.value.metaData.duration;
     final totalSec = duration.inSeconds > 0 ? duration.inSeconds.toDouble() : 1.0;
-    final currentSec =
-        position.inSeconds.clamp(0, duration.inSeconds > 0 ? duration.inSeconds : 1).toDouble();
+    final currentSec = position.inSeconds
+        .clamp(0, duration.inSeconds > 0 ? duration.inSeconds : 1)
+        .toDouble();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -324,8 +304,8 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
           GestureDetector(
             onTap: isLoading ? null : _togglePlay,
             child: Container(
-              width: 72,
-              height: 72,
+              width: 68,
+              height: 68,
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -339,13 +319,13 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
               ),
               child: isLoading
                   ? Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(18),
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: emotion.color),
                     )
                   : Icon(
                       isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                       color: emotion.color,
-                      size: 40,
+                      size: 38,
                     ),
             ),
           ),
@@ -362,7 +342,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
 
   Widget _buildPlaylist(Emotion emotion) {
     return SizedBox(
-      height: 120,
+      height: 100,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -379,8 +359,8 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 80,
-              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: 72,
+              margin: const EdgeInsets.symmetric(horizontal: 5),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -392,16 +372,14 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     child: CachedNetworkImage(
                       imageUrl: t.thumbnailUrl,
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
+                      width: 56, height: 56, fit: BoxFit.cover,
                       errorWidget: (ctx, url, err) => Container(
-                        width: 64, height: 64,
-                        color: emotion.lightColor,
-                        child: Icon(Icons.music_note, color: emotion.color, size: 24),
+                        width: 56, height: 56,
+                        color: emotion.color.withValues(alpha: 0.3),
+                        child: Icon(Icons.music_note, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
@@ -409,8 +387,8 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                   Text(
                     t.title,
                     style: TextStyle(
-                      color: isCurrent ? Colors.white : Colors.white60,
-                      fontSize: 10,
+                      color: isCurrent ? Colors.white : Colors.white54,
+                      fontSize: 9,
                       fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                     ),
                     maxLines: 1,

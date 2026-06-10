@@ -23,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // DateFormat 재생성 방지 — 빌드마다 할당 X
   static final _headerDateFmt = DateFormat('M월 d일 EEEE', 'ko_KR');
 
   @override
@@ -37,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFFFBF8FF),
       body: SafeArea(
         child: Consumer2<DiaryProvider, AuthProvider>(
           builder: (context, diary, auth, _) {
@@ -47,7 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
             return CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader(auth, diary)),
-                SliverToBoxAdapter(child: _buildMuziHero(diary, todayEntry, profile)),
+                SliverToBoxAdapter(
+                  child: _buildMuziHero(diary, todayEntry, profile, auth),
+                ),
                 if (todayEntry != null && todayEntry.recommendedTracks.isNotEmpty)
                   SliverToBoxAdapter(child: _buildTodaySongCard(todayEntry)),
                 SliverToBoxAdapter(child: _buildTasteProfileCard(profile, diary)),
@@ -73,13 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── 상단 헤더 ────────────────────────────────────────
+  // ── 상단 헤더 ─────────────────────────────────────────
   Widget _buildHeader(AuthProvider auth, DiaryProvider diary) {
     final now = DateTime.now();
     final dateStr = _headerDateFmt.format(now);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         children: [
           Column(
@@ -88,31 +89,35 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 '뮤지어리',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  color: AppTheme.primary, fontSize: 26,
+                  color: AppTheme.primary, fontSize: 24, fontWeight: FontWeight.w900,
                 ),
               ),
-              Text(dateStr, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                dateStr,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
             ],
           ),
           const Spacer(),
-          // 보석 배지
           GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const MuziShopScreen())),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFFF0EBFF),
+                borderRadius: BorderRadius.circular(22),
               ),
               child: Row(
                 children: [
                   const Text('💎', style: TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 5),
                   Text(
                     '${auth.gems}',
                     style: const TextStyle(
-                      color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 13,
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -124,138 +129,331 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── 뮤지 히어로 섹션 ─────────────────────────────────
-  Widget _buildMuziHero(DiaryProvider diary, DiaryEntry? todayEntry, MuziMusicProfile profile) {
+  // ── 뮤지 히어로 ── 캐릭터 중앙 배치 + 옷장 ─────────────
+  Widget _buildMuziHero(
+    DiaryProvider diary,
+    DiaryEntry? todayEntry,
+    MuziMusicProfile profile,
+    AuthProvider auth,
+  ) {
     final emotion = todayEntry?.emotion;
     final emotionData = emotion != null ? Emotion.fromType(emotion) : null;
-
-    // 배경 그라디언트: 감정 색상 or 취향 색상
-    final gradientColor = emotionData?.color ?? profile.tasteColor;
+    final accentColor = emotionData?.color ?? const Color(0xFFBB86FC);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            gradientColor.withValues(alpha: 0.18),
-            gradientColor.withValues(alpha: 0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: gradientColor.withValues(alpha: 0.2)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
         children: [
-          // 왼쪽: 텍스트
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (emotion != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: emotionData!.color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '오늘 기분 ${emotionData.emoji} ${emotionData.label}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: emotionData.color),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    todayEntry!.content.length > 60
-                        ? '${todayEntry.content.substring(0, 60)}...'
-                        : todayEntry.content,
-                    style: const TextStyle(
-                      fontSize: 13, color: AppTheme.textSecondary, height: 1.5,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ] else ...[
-                  Text(
-                    '안녕! 나는 뮤지야 🎵',
-                    style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '일기 쓰고 감정을 분석해봐!\n딱 맞는 노래 골라줄게 🎶',
-                    style: const TextStyle(
-                      fontSize: 13, color: AppTheme.textSecondary, height: 1.5,
-                    ),
-                  ),
+          // ── 캐릭터 영역 (파스텔 그라디언트 배경) ──────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  accentColor.withValues(alpha: 0.14),
+                  Colors.white.withValues(alpha: 0.0),
                 ],
-                const SizedBox(height: 14),
-                GestureDetector(
-                  onTap: () {
-                    if (emotion != null && todayEntry!.recommendedTracks.isNotEmpty) {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => MusicPlayerScreen(
-                          tracks: todayEntry.recommendedTracks,
-                          emotionType: emotion,
-                        ),
-                      ));
-                    } else {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => const DiaryWriteScreen(),
-                      ));
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: Column(
+              children: [
+                // 감정 뱃지
+                if (emotion != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: gradientColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(color: gradientColor.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3)),
-                      ],
+                      color: emotionData!.color.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          emotion != null ? Icons.music_note_rounded : Icons.edit_rounded,
-                          color: Colors.white, size: 15,
-                        ),
-                        const SizedBox(width: 6),
+                        Text(emotionData.emoji, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 5),
                         Text(
-                          emotion != null ? '오늘 노래 듣기' : '일기 쓰기',
-                          style: const TextStyle(
-                            color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700,
+                          '오늘 기분: ${emotionData.label}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: emotionData.color,
                           ),
                         ),
                       ],
+                    ),
+                  )
+                else
+                  Text(
+                    '안녕! 나는 뮤지야 🎵',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: accentColor.withValues(alpha: 0.85),
+                    ),
+                  ),
+
+                // 뮤지 캐릭터 — 크게, 중앙
+                RepaintBoundary(
+                  child: Consumer<AuthProvider>(
+                    builder: (context, auth, _) => MuziCharacter(
+                      emotion: emotion,
+                      size: 160,
+                      showSpeechBubble: false,
+                      outfit: auth.user?.equippedOutfit ?? 'none',
+                      accessory: auth.user?.equippedAccessory ?? 'none',
+                      background: 'default',
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // 뮤지 캐릭터 — RepaintBoundary로 애니메이션 repaints 격리
-          RepaintBoundary(
+
+          // ── 하단: 옷장 + 메시지 + 버튼 ───────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
             child: Consumer<AuthProvider>(
-              builder: (context, auth, _) => MuziCharacter(
-                emotion: emotion,
-                size: 100,
-                showSpeechBubble: false,
-                outfit: auth.user?.equippedOutfit ?? 'none',
-                accessory: auth.user?.equippedAccessory ?? 'none',
-                background: 'default',
+              builder: (context, auth, _) => Column(
+                children: [
+                  // 옷장 (장착 아이템 표시)
+                  _buildWardrobeRow(auth),
+                  const SizedBox(height: 12),
+
+                  // 오늘 일기 스니펫 or 안내
+                  if (todayEntry != null)
+                    Text(
+                      todayEntry.content.length > 55
+                          ? '${todayEntry.content.substring(0, 55)}...'
+                          : todayEntry.content,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                        height: 1.6,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    )
+                  else
+                    const Text(
+                      '일기를 써봐요!\n내 감정에 딱 맞는 노래를 골라줄게요 🎶',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                        height: 1.6,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                  const SizedBox(height: 16),
+
+                  // 액션 버튼
+                  GestureDetector(
+                    onTap: () {
+                      if (emotion != null && todayEntry!.recommendedTracks.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MusicPlayerScreen(
+                              tracks: todayEntry.recommendedTracks,
+                              emotionType: emotion,
+                            ),
+                          ),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const DiaryWriteScreen()),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 13),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.4),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            emotion != null ? Icons.music_note_rounded : Icons.edit_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 7),
+                          Text(
+                            emotion != null ? '오늘 노래 듣기' : '일기 쓰기',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ── 옷장 위젯 ─────────────────────────────────────────
+  Widget _buildWardrobeRow(AuthProvider auth) {
+    final outfit = auth.user?.equippedOutfit ?? 'none';
+    final accessory = auth.user?.equippedAccessory ?? 'none';
+    final skin = auth.user?.muziSkin ?? 'default';
+    final hasOutfit = outfit != 'none';
+    final hasAccessory = accessory != 'none';
+    final hasSpecialSkin = skin != 'default';
+    final hasAnything = hasOutfit || hasAccessory || hasSpecialSkin;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MuziShopScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F0FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0D0FF)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.checkroom_rounded, size: 15, color: Color(0xFF9B59B6)),
+            const SizedBox(width: 7),
+            if (!hasAnything) ...[
+              const Text(
+                '꾸미기 아이템을 장착해봐요',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF9B59B6),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else ...[
+              if (hasSpecialSkin) _wardrobeBadge(_skinEmoji(skin), _skinLabel(skin)),
+              if (hasSpecialSkin && (hasOutfit || hasAccessory)) _wardrobeDivider(),
+              if (hasOutfit) _wardrobeBadge(_outfitEmoji(outfit), _outfitLabel(outfit)),
+              if (hasOutfit && hasAccessory) _wardrobeDivider(),
+              if (hasAccessory) _wardrobeBadge(_accessoryEmoji(accessory), _accessoryLabel(accessory)),
+            ],
+            const Spacer(),
+            const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFFCBB4E8)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _wardrobeBadge(String emoji, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 15)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF7D4F9E),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _wardrobeDivider() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Text('·', style: TextStyle(color: Color(0xFFCBB4E8), fontSize: 14)),
+    );
+  }
+
+  String _outfitEmoji(String id) {
+    switch (id) {
+      case 'ribbon': return '🎀';
+      case 'music_hat': return '🎩';
+      case 'crown': return '👑';
+      case 'star_clip': return '⭐';
+      case 'headphones': return '🎧';
+      default: return '✨';
+    }
+  }
+
+  String _outfitLabel(String id) {
+    switch (id) {
+      case 'ribbon': return '핑크 리본';
+      case 'music_hat': return '뮤직 모자';
+      case 'crown': return '황금 왕관';
+      case 'star_clip': return '별 머리핀';
+      case 'headphones': return '헤드폰';
+      default: return id;
+    }
+  }
+
+  String _accessoryEmoji(String id) {
+    switch (id) {
+      case 'glasses': return '👓';
+      case 'heart_glasses': return '🕶️';
+      case 'sparkle': return '✨';
+      default: return '💫';
+    }
+  }
+
+  String _accessoryLabel(String id) {
+    switch (id) {
+      case 'glasses': return '동그란 안경';
+      case 'heart_glasses': return '하트 선글라스';
+      case 'sparkle': return '반짝이';
+      default: return id;
+    }
+  }
+
+  String _skinEmoji(String id) {
+    switch (id) {
+      case 'gold': return '🌟';
+      case 'pink': return '🌸';
+      case 'sky': return '☁️';
+      default: return '✨';
+    }
+  }
+
+  String _skinLabel(String id) {
+    switch (id) {
+      case 'gold': return '황금 뮤지';
+      case 'pink': return '핑크 뮤지';
+      case 'sky': return '하늘 뮤지';
+      default: return id;
+    }
   }
 
   // ── 오늘의 노래 카드 ──────────────────────────────────
@@ -264,12 +462,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final track = entry.recommendedTracks.first;
 
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => MusicPlayerScreen(
-          tracks: entry.recommendedTracks,
-          emotionType: entry.emotion,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MusicPlayerScreen(
+            tracks: entry.recommendedTracks,
+            emotionType: entry.emotion,
+          ),
         ),
-      )),
+      ),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
         padding: const EdgeInsets.all(16),
@@ -279,19 +480,22 @@ class _HomeScreenState extends State<HomeScreen> {
             end: Alignment.centerRight,
             colors: [emotion.color, emotion.color.withValues(alpha: 0.75)],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
-            BoxShadow(color: emotion.color.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: emotion.color.withValues(alpha: 0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
           children: [
-            // 앨범 아트
             Container(
               width: 50, height: 50,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Center(child: Text('🎵', style: TextStyle(fontSize: 26))),
             ),
@@ -366,7 +570,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              // 레벨 뱃지
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -389,7 +592,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (profile.totalEntries > 0) ...[
             const SizedBox(height: 12),
-            // 감정 분포 바
             _buildEmotionBar(profile),
           ],
         ],
@@ -415,13 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final em = Emotion.fromType(type);
               return Expanded(
                 flex: (ratio * 100).round().clamp(1, 100),
-                child: Tooltip(
-                  message: '${em.label} $count회',
-                  child: Container(
-                    height: 8,
-                    color: em.color,
-                  ),
-                ),
+                child: Container(height: 8, color: em.color),
               );
             }).toList(),
           ),
@@ -435,9 +631,15 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.only(right: 10),
               child: Row(
                 children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: em.color, shape: BoxShape.circle)),
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(color: em.color, shape: BoxShape.circle),
+                  ),
                   const SizedBox(width: 4),
-                  Text('${em.label} $count', style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  Text(
+                    '${em.label} $count',
+                    style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                  ),
                 ],
               ),
             );
@@ -447,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── 뮤지의 미니 앨범 (최근 노래 3곡) ───────────────────
+  // ── 뮤지의 미니 앨범 ──────────────────────────────────
   Widget _buildMiniAlbum(DiaryProvider diary) {
     final recent = diary.recentSongs(limit: 3);
 
@@ -472,8 +674,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const MuziPlaylistScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MuziPlaylistScreen()),
+                ),
                 child: Row(
                   children: [
                     Text(
@@ -505,20 +709,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ] else ...[
             const SizedBox(height: 12),
-            ...recent.map((song) => _buildMiniSongRow(song)),
+            ...recent.map((song) => _MiniSongRow(song: song)),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildMiniSongRow(SavedSong song) => _MiniSongRow(song: song);
-
-  // ── 최근 일기 (간략화) ────────────────────────────────
+  // ── 최근 일기 ─────────────────────────────────────────
   Widget _buildRecentEntries(DiaryProvider diary) {
     if (diary.entries.isEmpty) return const SizedBox.shrink();
-
     final recent = diary.entries.take(3).toList();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Column(
@@ -538,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── StatelessWidget 분리: 불필요한 rebuild 방지 ─────────────
+// ── StatelessWidget 분리 ──────────────────────────────────
 
 class _MiniSongRow extends StatelessWidget {
   final SavedSong song;
@@ -548,12 +750,15 @@ class _MiniSongRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final emotion = Emotion.fromType(song.emotion);
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => MusicPlayerScreen(
-          tracks: [song.toMusicTrack()],
-          emotionType: song.emotion,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MusicPlayerScreen(
+            tracks: [song.toMusicTrack()],
+            emotionType: song.emotion,
+          ),
         ),
-      )),
+      ),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Row(
@@ -573,11 +778,15 @@ class _MiniSongRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(song.title,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                  Text(
+                    song.title,
+                    style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary,
+                    ),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
-                  Text(song.artist,
+                  Text(
+                    song.artist,
                     style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
@@ -603,8 +812,10 @@ class _DiaryEntryItem extends StatelessWidget {
     final dateStr = _dateFmt.format(entry.createdAt);
 
     return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => DiaryDetailScreen(entry: entry))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => DiaryDetailScreen(entry: entry)),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),
@@ -629,17 +840,24 @@ class _DiaryEntryItem extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(emotion.label,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: emotion.color)),
+                      Text(
+                        emotion.label,
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600, color: emotion.color,
+                        ),
+                      ),
                       const Spacer(),
-                      Text(dateStr,
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                      Text(
+                        dateStr,
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text(
                     entry.content.length > 50
-                        ? '${entry.content.substring(0, 50)}...' : entry.content,
+                        ? '${entry.content.substring(0, 50)}...'
+                        : entry.content,
                     style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
