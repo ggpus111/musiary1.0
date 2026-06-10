@@ -197,6 +197,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
 
+              // 게스트 모드일 때만 계정 연동 섹션 표시
+              if (!auth.isLoggedIn)
+                _buildSection(
+                  title: '계정 연동',
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: Colors.orange.shade600, size: 15),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '게스트 모드 중이에요. 계정을 연동하면 보석 결제·구독·클라우드 백업을 이용할 수 있고, 기존 일기 데이터는 그대로 유지돼요.',
+                              style: TextStyle(fontSize: 12, color: Colors.orange.shade700, height: 1.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ListTile(
+                      leading: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: const Center(
+                          child: Text('G', style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF4285F4),
+                          )),
+                        ),
+                      ),
+                      title: const Text('Google 계정으로 연동'),
+                      subtitle: const Text('기존 데이터 유지', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.pushNamed(context, '/login'),
+                    ),
+                    ListTile(
+                      leading: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.email_outlined, color: AppTheme.primary, size: 20),
+                        ),
+                      ),
+                      title: const Text('이메일로 연동'),
+                      subtitle: const Text('기존 데이터 유지', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.pushNamed(context, '/login'),
+                    ),
+                    ListTile(
+                      leading: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE500).withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Text('K', style: TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF3C1E1E),
+                          )),
+                        ),
+                      ),
+                      title: const Text('카카오로 연동'),
+                      subtitle: const Text('추후 지원 예정', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('준비 중', style: TextStyle(
+                          fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600,
+                        )),
+                      ),
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('카카오 연동은 추후 지원 예정이에요 😊'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
               _buildSection(
                 title: '계정',
                 children: [

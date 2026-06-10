@@ -122,21 +122,6 @@ class YoutubeAudioService {
     }
   }
 
-  /// 오디오 스트림 URL 가져오기
-  Future<String?> getAudioStreamUrl(String videoId) async {
-    try {
-      final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-      final audioStreams = manifest.audioOnly.sortByBitrate();
-      if (audioStreams.isEmpty) return null;
-      final stream = audioStreams.length > 1
-          ? audioStreams[audioStreams.length ~/ 2]
-          : audioStreams.last;
-      return stream.url.toString();
-    } catch (e) {
-      return null;
-    }
-  }
-
   String _cleanTitle(String title) {
     return title
         .replaceAll(RegExp(r'\[.*?\]'), '')

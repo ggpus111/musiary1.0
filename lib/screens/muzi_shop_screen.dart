@@ -274,16 +274,27 @@ class _MuziShopScreenState extends State<MuziShopScreen>
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 68, height: 68,
+                    width: 72, height: 72,
                     decoration: BoxDecoration(
-                      color: skinColor.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          skinColor.withValues(alpha: 0.18),
+                          skinColor.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isCurrent ? skinColor.withValues(alpha: 0.5) : skinColor.withValues(alpha: 0.12),
+                        width: 1.5,
+                      ),
                     ),
-                    child: Center(child: Text(skin.emoji, style: const TextStyle(fontSize: 34))),
+                    child: Center(child: Text(skin.emoji, style: const TextStyle(fontSize: 36))),
                   ),
                   if (isCurrent)
                     Positioned(
-                      bottom: 0, right: 0,
+                      bottom: -2, right: -2,
                       child: Container(
                         width: 22, height: 22,
                         decoration: BoxDecoration(
@@ -547,16 +558,27 @@ class _MuziShopScreenState extends State<MuziShopScreen>
                       alignment: Alignment.center,
                       children: [
                         Container(
-                          width: 68, height: 68,
+                          width: 72, height: 72,
                           decoration: BoxDecoration(
-                            color: itemColor.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                itemColor.withValues(alpha: 0.18),
+                                itemColor.withValues(alpha: 0.08),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isCurrent ? itemColor.withValues(alpha: 0.4) : itemColor.withValues(alpha: 0.1),
+                              width: 1.5,
+                            ),
                           ),
-                          child: Center(child: Text(item.emoji, style: const TextStyle(fontSize: 34))),
+                          child: Center(child: Text(item.emoji, style: const TextStyle(fontSize: 36))),
                         ),
                         if (isCurrent)
                           Positioned(
-                            bottom: 0, right: 0,
+                            bottom: -2, right: -2,
                             child: Container(
                               width: 22, height: 22,
                               decoration: BoxDecoration(

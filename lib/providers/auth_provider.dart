@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
+import '../models/muzi_item.dart';
 
 // ═══════════════════════════════════════════════════
 // 카카오 로그인은 developers.kakao.com 앱 등록 후 사용 가능
@@ -428,6 +429,73 @@ class AuthProvider extends ChangeNotifier {
       equippedAccessory: accessory,
       equippedBackground: background,
     );
+    notifyListeners();
+  }
+
+  // ── 테스트 계정 로그인 (발표·데모용) ─────────────────
+  static const _testEmail    = 'demo@musiary.app';
+  static const _testPassword = 'musiary1234!';
+
+  Future<bool> signInAsTestAccount() async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      UserCredential credential;
+      try {
+        // 이미 있으면 로그인
+        credential = await _auth.signInWithEmailAndPassword(
+          email: _testEmail,
+          password: _testPassword,
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' ||
+            e.code == 'invalid-credential' ||
+            e.code == 'INVALID_LOGIN_CREDENTIALS') {
+          // 없으면 자동 생성
+          credential = await _auth.createUserWithEmailAndPassword(
+            email: _testEmail,
+            password: _testPassword,
+          );
+          await credential.user?.updateDisplayName('데모 뮤지');
+        } else {
+          rethrow;
+        }
+      }
+      // 모든 아이템 세팅
+      await _seedTestData(credential.user!.uid);
+      return true;
+    } catch (e) {
+      _errorMessage = '테스트 계정 로그인에 실패했어요. ($e)';
+      notifyListeners();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> _seedTestData(String uid) async {
+    final allSkinIds = MuziSkin.all.map((s) => s.id).toList();
+    final allItemIds = MuziItem.all.map((i) => i.id).toList();
+
+    final testUser = MusiaryUser(
+      uid: uid,
+      email: _testEmail,
+      displayName: '데모 뮤지',
+      createdAt: DateTime.now(),
+      gems: 9999,
+      isPremium: true,
+      premiumUntil: DateTime(2099, 12, 31),
+      ownedSkins: allSkinIds,
+      ownedItems: allItemIds,
+      equippedOutfit: 'crown',
+      equippedAccessory: 'heart_glasses',
+      equippedBackground: 'sakura',
+      muziSkin: 'gold',
+    );
+
+    await _db.collection('users').doc(uid).set(testUser.toMap());
+    _user = testUser;
+    _status = AuthStatus.authenticated;
     notifyListeners();
   }
 

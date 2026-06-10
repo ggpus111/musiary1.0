@@ -56,7 +56,6 @@ class MusiaryApp extends StatelessWidget {
           '/login': (_) => const LoginScreen(),
           '/home': (_) => const MainNavigation(),
         },
-        home: const SplashScreen(),
       ),
     );
   }

@@ -45,9 +45,9 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> {
           ),
         ],
       ),
-      body: _isSaving
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,6 +61,47 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> {
                 ],
               ),
             ),
+          // 저장 중 오버레이 (폼 유지, 반투명 덮개)
+          if (_isSaving)
+            Container(
+              color: Colors.black.withValues(alpha: 0.45),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 36, height: 36,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '일기 저장 중...',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '잠시 후 음악을 추천해 드려요 🎵',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -237,10 +278,16 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> {
     if (!_canSave()) return;
     setState(() => _isSaving = true);
 
+    // 결과 화면에서 음악을 업데이트하기 위한 콜백
+    final resultKey = GlobalKey<DiaryResultScreenState>();
+
     final entry = await context.read<DiaryProvider>().saveDiary(
       content: _controller.text.trim(),
       selectedEmotion: _selectedEmotion!,
       imagePath: _imagePath,
+      onMusicReady: (updated) {
+        resultKey.currentState?.updateMusic(updated.recommendedTracks);
+      },
     );
 
     if (!mounted) return;
@@ -249,7 +296,9 @@ class _DiaryWriteScreenState extends State<DiaryWriteScreen> {
     if (entry != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => DiaryResultScreen(entry: entry)),
+        MaterialPageRoute(
+          builder: (_) => DiaryResultScreen(key: resultKey, entry: entry),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

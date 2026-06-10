@@ -99,6 +99,11 @@ class _LoginScreenState extends State<LoginScreen>
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
       );
+      // 로그인 성공 시 이전 화면으로 복귀 (게스트 → 연동 경로 포함)
+      if (success && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
     }
 
     if (!success && mounted) {
@@ -116,6 +121,10 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _googleSignIn() async {
     final auth = context.read<AuthProvider>();
     final success = await auth.signInWithGoogle();
+    if (success && mounted) {
+      Navigator.of(context).pop();
+      return;
+    }
     if (!success && mounted && auth.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -590,16 +599,45 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildGuestButton() {
-    return TextButton(
-      onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
-      child: Text(
-        '로그인 없이 사용하기 (게스트 모드)',
-        style: TextStyle(
-          color: Colors.grey.shade400,
-          fontSize: 12,
-          decoration: TextDecoration.underline,
+    return Column(
+      children: [
+        // 게스트 모드 제한 안내
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, color: Colors.orange.shade600, size: 15),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '게스트 모드에서는 보석 결제 및 구독 기능을 이용할 수 없어요.\n'
+                  '나중에 설정에서 계정을 연동하면 데이터는 그대로 유지됩니다.',
+                  style: TextStyle(fontSize: 11.5, color: Colors.orange.shade700, height: 1.5),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+          child: Text(
+            '로그인 없이 사용하기 (게스트 모드)',
+            style: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -157,7 +157,8 @@ class MuziItem {
 /// 보석 팩 상품 정보
 class GemPack {
   final String productId;
-  final int gemAmount;
+  final int gemAmount;      // 기본 보석 수
+  final int bonusGems;      // 보너스 보석 (0이면 없음)
   final int price;          // 원 단위
   final String label;       // 화면 표시용
   final bool isBestValue;
@@ -165,36 +166,50 @@ class GemPack {
   const GemPack({
     required this.productId,
     required this.gemAmount,
+    this.bonusGems = 0,
     required this.price,
     required this.label,
     this.isBestValue = false,
   });
 
+  /// 실제 지급 총량
+  int get totalGems => gemAmount + bonusGems;
+
+  /// 기준 단가(100원/개) 대비 할인율
+  int get discountPercent {
+    const baseUnitPrice = 100;
+    final normalPrice = gemAmount * baseUnitPrice;
+    if (normalPrice <= 0) return 0;
+    return ((normalPrice - price) / normalPrice * 100).round();
+  }
+
   static const List<GemPack> all = [
+    GemPack(
+      productId: 'musiary_gems_10',
+      gemAmount: 10,
+      price: 1000,
+      label: '보석 소량',
+    ),
     GemPack(
       productId: 'musiary_gems_30',
       gemAmount: 30,
-      price: 1100,
-      label: '소소한 보석',
+      price: 2500,
+      label: '보석 중량',
     ),
     GemPack(
-      productId: 'musiary_gems_80',
-      gemAmount: 80,
-      price: 2900,
-      label: '반짝이는 보석',
-    ),
-    GemPack(
-      productId: 'musiary_gems_200',
-      gemAmount: 200,
-      price: 6900,
-      label: '빛나는 보석 상자',
+      productId: 'musiary_gems_50',
+      gemAmount: 50,
+      bonusGems: 10,
+      price: 4000,
+      label: '보석 상자',
       isBestValue: true,
     ),
     GemPack(
-      productId: 'musiary_gems_500',
-      gemAmount: 500,
-      price: 14900,
-      label: '눈부신 보석 금고',
+      productId: 'musiary_gems_100',
+      gemAmount: 100,
+      bonusGems: 20,
+      price: 7000,
+      label: '보석 금고',
     ),
   ];
 }

@@ -101,7 +101,64 @@ class _GemShopScreenState extends State<GemShopScreen> {
     );
   }
 
+  void _showGuestPurchaseDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🔒', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 12),
+            const Text(
+              '결제를 위해 로그인이 필요해요',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '게스트 모드에서는 보석 결제를 이용할 수 없어요.\n'
+              '로그인 후에도 지금까지의 일기 데이터는 그대로 유지됩니다.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pushNamed(context, '/login');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  '로그인 / 회원가입',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('나중에', style: TextStyle(color: Colors.grey.shade500)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _purchasePack(GemPack pack, AuthProvider auth) async {
+    // 게스트 모드 차단
+    if (!auth.isLoggedIn) {
+      _showGuestPurchaseDialog();
+      return;
+    }
     if (_isPurchasing) return;
     setState(() {
       _isPurchasing = true;
@@ -266,6 +323,69 @@ class _GemShopScreenState extends State<GemShopScreen> {
           _buildEarnRow('🎉', '한 달 30개 달성', '+50 💎', null),
           const SizedBox(height: 8),
           _buildEarnRow('🎁', '신규 가입', '+10 💎', '기본 지급'),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          // 구매 팩 요약 비교
+          const Text(
+            '💎 구매 팩 비교',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 10),
+          _buildPackCompareRow('10개', '₩1,000', '개당 100원', false),
+          const SizedBox(height: 6),
+          _buildPackCompareRow('30개', '₩2,500', '개당 83원  ·  17% 할인', false),
+          const SizedBox(height: 6),
+          _buildPackCompareRow('50개 +10보너스', '₩4,000', '합계 60개  ·  20% 할인', true),
+          const SizedBox(height: 6),
+          _buildPackCompareRow('100개 +20보너스', '₩7,000', '합계 120개  ·  30% 할인', false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPackCompareRow(String gems, String price, String desc, bool highlight) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: highlight ? AppTheme.primary.withValues(alpha: 0.06) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        border: highlight ? Border.all(color: AppTheme.primary.withValues(alpha: 0.2)) : null,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '💎 $gems',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: highlight ? AppTheme.primary : AppTheme.textPrimary,
+                  ),
+                ),
+                Text(desc, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          Text(price, style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: highlight ? AppTheme.primary : AppTheme.textPrimary,
+          )),
+          if (highlight) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('인기', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+            ),
+          ],
         ],
       ),
     );
@@ -303,12 +423,14 @@ class _GemShopScreenState extends State<GemShopScreen> {
   Widget _buildPackCard(GemPack pack, AuthProvider auth) {
     final isPurchasing = _purchasingId == pack.productId;
     final colors = _packColors(pack);
+    final hasBonus = pack.bonusGems > 0;
+    final discount = pack.discountPercent;
 
     return GestureDetector(
       onTap: _isPurchasing ? null : () => _purchasePack(pack, auth),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -321,62 +443,119 @@ class _GemShopScreenState extends State<GemShopScreen> {
         ),
         child: Row(
           children: [
-            // 보석 아이콘
-            Container(
-              width: 64, height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text('💎', style: TextStyle(fontSize: _gemFontSize(pack))),
-              ),
+            // ── 보석 아이콘 ──────────────────────
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 68, height: 68,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: colors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Center(
+                    child: Text('💎', style: TextStyle(fontSize: _gemFontSize(pack))),
+                  ),
+                ),
+                // 보너스 뱃지
+                if (hasBonus)
+                  Positioned(
+                    top: -6, right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade500,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Text(
+                        '+${pack.bonusGems}',
+                        style: const TextStyle(
+                          color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(width: 14),
-            // 정보
+            // ── 텍스트 정보 ──────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  // 보석 개수 + 뱃지들
+                  Wrap(
+                    spacing: 5,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(pack.label, style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.textPrimary,
-                      )),
-                      if (pack.isBestValue) ...[
-                        const SizedBox(width: 6),
+                      Text(
+                        '💎 ${pack.gemAmount}개',
+                        style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      if (hasBonus)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Text(
+                            '+${pack.bonusGems} 보너스',
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      if (pack.isBestValue)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppTheme.primary,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text('인기', style: TextStyle(
-                            color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800,
-                          )),
+                          child: const Text(
+                            '인기',
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                          ),
                         ),
-                      ],
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '💎 ${pack.gemAmount}개',
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                  ),
-                  if (pack.isBestValue) ...[
-                    const SizedBox(height: 2),
+                  const SizedBox(height: 3),
+                  // 총 수량 (보너스 있을 때)
+                  if (hasBonus)
                     Text(
-                      '개당 ${(pack.price / pack.gemAmount).toStringAsFixed(0)}원 · 최고 가성비!',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.w600),
+                      '합계 ${pack.totalGems}개 지급',
+                      style: TextStyle(fontSize: 12, color: Colors.green.shade600, fontWeight: FontWeight.w600),
                     ),
-                  ],
+                  // 할인율 & 단가
+                  if (discount > 0)
+                    Text(
+                      '개당 ${(pack.price / pack.totalGems).toStringAsFixed(0)}원  ·  $discount% 할인',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                    )
+                  else
+                    Text(
+                      '개당 ${(pack.price / pack.totalGems).toStringAsFixed(0)}원',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                    ),
                 ],
               ),
             ),
-            // 가격 버튼
+            const SizedBox(width: 10),
+            // ── 구매 버튼 ────────────────────────
             SizedBox(
-              width: 80,
-              height: 42,
+              width: 76,
+              height: 44,
               child: ElevatedButton(
                 onPressed: (_isPurchasing || isPurchasing) ? null : () => _purchasePack(pack, auth),
                 style: ElevatedButton.styleFrom(
@@ -406,19 +585,19 @@ class _GemShopScreenState extends State<GemShopScreen> {
 
   List<Color> _packColors(GemPack pack) {
     switch (pack.gemAmount) {
-      case 30:  return [const Color(0xFFDFE6E9), const Color(0xFFB2BEC3)];
-      case 80:  return [const Color(0xFFE8CEAF), const Color(0xFFC4966A)];
-      case 200: return [const Color(0xFF74B9FF), const Color(0xFF0984E3)];
-      case 500: return [const Color(0xFFFDCB6E), const Color(0xFFE17055)];
+      case 10:  return [const Color(0xFFDFE6E9), const Color(0xFFB2BEC3)];
+      case 30:  return [const Color(0xFFE8CEAF), const Color(0xFFC4966A)];
+      case 50:  return [const Color(0xFF74B9FF), const Color(0xFF0984E3)];
+      case 100: return [const Color(0xFFFDCB6E), const Color(0xFFE17055)];
       default:  return [AppTheme.primary, AppTheme.primary];
     }
   }
 
   double _gemFontSize(GemPack pack) {
-    if (pack.gemAmount >= 500) return 32;
-    if (pack.gemAmount >= 200) return 28;
-    if (pack.gemAmount >= 80)  return 26;
-    return 22;
+    if (pack.gemAmount >= 100) return 30;
+    if (pack.gemAmount >= 50)  return 26;
+    if (pack.gemAmount >= 30)  return 22;
+    return 20;
   }
 
   String _formatPrice(int price) {

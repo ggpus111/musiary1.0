@@ -4,14 +4,39 @@ import '../models/emotion.dart';
 import '../utils/app_theme.dart';
 import 'music_player_screen.dart';
 
-class DiaryResultScreen extends StatelessWidget {
+class DiaryResultScreen extends StatefulWidget {
   final DiaryEntry entry;
 
   const DiaryResultScreen({super.key, required this.entry});
 
   @override
+  State<DiaryResultScreen> createState() => DiaryResultScreenState();
+}
+
+class DiaryResultScreenState extends State<DiaryResultScreen> {
+  late DiaryEntry _entry;
+  bool _musicLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _entry = widget.entry;
+    // 이미 트랙이 있으면 로딩 불필요
+    if (_entry.recommendedTracks.isNotEmpty) _musicLoading = false;
+  }
+
+  /// DiaryProvider의 백그라운드 탐색 완료 시 호출
+  void updateMusic(List<MusicTrack> tracks) {
+    if (!mounted) return;
+    setState(() {
+      _entry = _entry.copyWith(recommendedTracks: tracks);
+      _musicLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final emotion = Emotion.fromType(entry.emotion);
+    final emotion = Emotion.fromType(_entry.emotion);
 
     return Scaffold(
       body: SafeArea(
@@ -61,7 +86,7 @@ class DiaryResultScreen extends StatelessWidget {
             emotion.label,
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
           ),
-          if (entry.emotionScore > 0) ...[
+          if (_entry.emotionScore > 0) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -70,7 +95,7 @@ class DiaryResultScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '감정 강도 ${(entry.emotionScore * 100).toInt()}%',
+                '감정 강도 ${(_entry.emotionScore * 100).toInt()}%',
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
@@ -105,7 +130,7 @@ class DiaryResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              entry.comfortMessage,
+              _entry.comfortMessage,
               style: const TextStyle(fontSize: 16, height: 1.7, color: AppTheme.textPrimary),
             ),
           ],
@@ -115,7 +140,48 @@ class DiaryResultScreen extends StatelessWidget {
   }
 
   Widget _buildMusicSection(BuildContext context, Emotion emotion) {
-    if (entry.recommendedTracks.isEmpty) return const SizedBox.shrink();
+    // 음악 로딩 중
+    if (_musicLoading && _entry.recommendedTracks.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: emotion.lightColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: emotion.color.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24, height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(emotion.color),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '음악 추천 중...',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: emotion.color),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '잠시만 기다려 주세요 🎵',
+                    style: TextStyle(fontSize: 12, color: emotion.color.withValues(alpha: 0.7)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_entry.recommendedTracks.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -136,8 +202,8 @@ class DiaryResultScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => MusicPlayerScreen(
-                  tracks: entry.recommendedTracks,
-                  emotionType: entry.emotion,
+                  tracks: _entry.recommendedTracks,
+                  emotionType: _entry.emotion,
                 ),
               ),
             ),
@@ -156,7 +222,7 @@ class DiaryResultScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.network(
-                      entry.recommendedTracks.first.thumbnailUrl,
+                      _entry.recommendedTracks.first.thumbnailUrl,
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
@@ -173,7 +239,7 @@ class DiaryResultScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          entry.recommendedTracks.first.title,
+                          _entry.recommendedTracks.first.title,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -183,7 +249,7 @@ class DiaryResultScreen extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${entry.recommendedTracks.length}곡 추천됨',
+                          '${_entry.recommendedTracks.length}곡 추천됨',
                           style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
@@ -203,7 +269,7 @@ class DiaryResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           // 트랙 목록 미리보기
-          ...entry.recommendedTracks.asMap().entries.map(
+          ..._entry.recommendedTracks.asMap().entries.map(
             (e) => _buildMusicTile(context, e.value, emotion, e.key),
           ),
         ],
@@ -217,8 +283,8 @@ class DiaryResultScreen extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (_) => MusicPlayerScreen(
-            tracks: entry.recommendedTracks,
-            emotionType: entry.emotion,
+            tracks: _entry.recommendedTracks,
+            emotionType: _entry.emotion,
             initialIndex: index,
           ),
         ),

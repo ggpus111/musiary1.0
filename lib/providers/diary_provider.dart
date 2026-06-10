@@ -88,18 +88,24 @@ class DiaryProvider extends ChangeNotifier {
   }
 
   /// 일기 저장 후 보석 지급 콜백 (+3💎 기본, 프리미엄 x2)
+  // 현재 음악 로딩 중인 일기 id
+  int? _loadingMusicForId;
+  int? get loadingMusicForId => _loadingMusicForId;
+
+  /// 일기를 즉시 저장하고 바로 반환 — 음악은 백그라운드에서 탐색
   Future<DiaryEntry?> saveDiary({
     required String content,
     required EmotionType selectedEmotion,
     String? imagePath,
     Future<void> Function(int gems)? onGemsEarned,
     bool isPremium = false,
+    void Function(DiaryEntry updated)? onMusicReady,
   }) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // 감정 분석
+      // ① 감정 분석 (빠름)
       final analysisResult = _emotionService.analyzeText(content);
       final finalEmotion = _emotionService.combineAnalysis(
         userSelected: selectedEmotion,
@@ -107,16 +113,14 @@ class DiaryProvider extends ChangeNotifier {
       );
       final emotionData = Emotion.fromType(finalEmotion);
 
-      // YouTube에서 한국 음악 검색 (API 키 불필요)
-      final tracks = await _musicService.searchByEmotion(finalEmotion);
-
+      // ② 음악 없이 즉시 DB 저장
       final entry = DiaryEntry(
         content: content,
         imagePath: imagePath,
         emotion: finalEmotion,
         emotionScore: analysisResult.score,
         comfortMessage: emotionData.comfortMessage,
-        recommendedTracks: tracks,
+        recommendedTracks: [],
         createdAt: DateTime.now(),
       );
 
@@ -127,28 +131,19 @@ class DiaryProvider extends ChangeNotifier {
       final key = DateTime(savedEntry.createdAt.year, savedEntry.createdAt.month, savedEntry.createdAt.day);
       _entryByDate[key] = savedEntry;
 
-      // 🎵 대표곡 자동 저장 (뮤지의 앨범)
-      if (tracks.isNotEmpty) {
-        final song = SavedSong.fromDiary(
-          track: tracks.first,
-          emotion: finalEmotion,
-          savedAt: savedEntry.createdAt,
-          diaryId: savedEntry.id,
-        );
-        final songId = await _db.saveSong(song);
-        _savedSongs.insert(0, song.copyWith(id: songId));
-      }
-
       _error = null;
       _isLoading = false;
       _invalidateProfileCache();
       notifyListeners();
 
-      // 💎 보석 지급: 기본 3개, 프리미엄 2배
+      // 💎 보석 즉시 지급
       if (onGemsEarned != null) {
         final gemsEarned = isPremium ? 6 : 3;
         await onGemsEarned(gemsEarned);
       }
+
+      // ③ YouTube 음악 탐색은 백그라운드에서
+      _fetchMusicInBackground(savedEntry, onMusicReady);
 
       return savedEntry;
     } catch (e) {
@@ -156,6 +151,45 @@ class DiaryProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return null;
+    }
+  }
+
+  /// 음악 백그라운드 탐색 — 완료되면 entry 업데이트 후 콜백 호출
+  void _fetchMusicInBackground(
+    DiaryEntry entry,
+    void Function(DiaryEntry updated)? onReady,
+  ) async {
+    _loadingMusicForId = entry.id;
+    notifyListeners();
+    try {
+      final tracks = await _musicService.searchByEmotion(entry.emotion);
+      if (tracks.isEmpty) return;
+
+      final updated = entry.copyWith(recommendedTracks: tracks);
+
+      // 리스트 업데이트
+      final idx = _entries.indexWhere((e) => e.id == entry.id);
+      if (idx >= 0) _entries[idx] = updated;
+      final key = DateTime(updated.createdAt.year, updated.createdAt.month, updated.createdAt.day);
+      _entryByDate[key] = updated;
+
+      // 🎵 대표곡 앨범 저장
+      final song = SavedSong.fromDiary(
+        track: tracks.first,
+        emotion: entry.emotion,
+        savedAt: updated.createdAt,
+        diaryId: updated.id,
+      );
+      final songId = await _db.saveSong(song);
+      _savedSongs.insert(0, song.copyWith(id: songId));
+
+      notifyListeners();
+      onReady?.call(updated);
+    } catch (_) {
+      // 음악 탐색 실패 — 일기는 이미 저장됨
+    } finally {
+      _loadingMusicForId = null;
+      notifyListeners();
     }
   }
 
