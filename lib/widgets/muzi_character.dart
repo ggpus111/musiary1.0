@@ -68,12 +68,21 @@ class _MuziCharacterState extends State<MuziCharacter>
     switch (widget.emotion) {
       case EmotionType.joyful:
       case EmotionType.excited:
+      case EmotionType.hopeful:
         return const Duration(milliseconds: 500);
       case EmotionType.tired:
       case EmotionType.miserable:
-        return const Duration(milliseconds: 1600);
+      case EmotionType.bored:
+        return const Duration(milliseconds: 1800);
       case EmotionType.calm:
+      case EmotionType.moved:
         return const Duration(milliseconds: 1400);
+      case EmotionType.shy:
+        return const Duration(milliseconds: 1100);
+      case EmotionType.anxious:
+        return const Duration(milliseconds: 700);
+      case EmotionType.lonely:
+        return const Duration(milliseconds: 1600);
       default:
         return const Duration(milliseconds: 900);
     }
@@ -83,21 +92,27 @@ class _MuziCharacterState extends State<MuziCharacter>
     switch (widget.emotion) {
       case EmotionType.joyful:
       case EmotionType.excited:
+      case EmotionType.hopeful:
         return -16.0;
       case EmotionType.tired:
       case EmotionType.miserable:
+      case EmotionType.bored:
         return -3.0;
       case EmotionType.angry:
+      case EmotionType.anxious:
         return -6.0;
+      case EmotionType.lonely:
+        return -4.0;
       default:
         return -10.0;
     }
   }
 
   void _startBlinking() async {
-    // 졸린/비참한 감정은 눈을 거의 안 깜빡임 (이미 눈이 처져있으므로)
+    // 졸린/비참/지루한 감정은 눈을 거의 안 깜빡임
     final skipBlink = widget.emotion == EmotionType.tired ||
-        widget.emotion == EmotionType.miserable;
+        widget.emotion == EmotionType.miserable ||
+        widget.emotion == EmotionType.bored;
     while (mounted) {
       await Future.delayed(Duration(seconds: skipBlink ? 8 : 3));
       if (!mounted) break;
@@ -310,6 +325,12 @@ class _MuziCharacterState extends State<MuziCharacter>
       case EmotionType.miserable: return '많이 힘들지... 💙\n같이 있어줄게. 위로 노래야!';
       case EmotionType.tired:     return '푹 쉬어도 돼요 🌙\n편안한 노래 틀어줄게!';
       case EmotionType.angry:     return '화풀어! 🔥\n시원하게 들을 노래 가져왔어!';
+      case EmotionType.shy:       return '에이~ 부끄럽다고? 🌸\n수줍은 감성 노래야!';
+      case EmotionType.anxious:   return '괜찮아, 다 잘 될 거야 💙\n마음 안정되는 노래 가져왔어!';
+      case EmotionType.moved:     return '뭉클하지? 나도 그래 🥹\n감동적인 노래 골랐어!';
+      case EmotionType.lonely:    return '나 여기 있어! 🌙\n같이 들을 노래 찾았어!';
+      case EmotionType.bored:     return '심심해? 나도! 😑\n분위기 바꿔줄 노래 가져왔어!';
+      case EmotionType.hopeful:   return '그 마음 너무 멋져! ✨\n힘이 되는 노래 준비했어!';
     }
   }
 }
@@ -351,6 +372,18 @@ class _EmotionParticlePainter extends CustomPainter {
         break;
       case EmotionType.nostalgic:
         _drawSparkles(canvas, cx, cy, size);
+        break;
+      case EmotionType.shy:
+        _drawBlushParticles(canvas, cx, cy, size);
+        break;
+      case EmotionType.anxious:
+        _drawSweatDrops(canvas, cx, cy, size);
+        break;
+      case EmotionType.moved:
+        _drawMovedParticles(canvas, cx, cy, size);
+        break;
+      case EmotionType.hopeful:
+        _drawRisingStars(canvas, cx, cy, size);
         break;
       default:
         break;
@@ -483,6 +516,63 @@ class _EmotionParticlePainter extends CustomPainter {
       final alpha = (sin(phase * pi)).clamp(0.0, 1.0);
       final paint = Paint()..color = const Color(0xFFE8C87A).withValues(alpha: alpha * 0.85);
       _drawStar(canvas, positions[i], size.width * 0.045, paint);
+    }
+  }
+
+  void _drawBlushParticles(Canvas canvas, double cx, double cy, Size size) {
+    final positions = [
+      Offset(cx - size.width * 0.32, cy - size.height * 0.05),
+      Offset(cx + size.width * 0.32, cy - size.height * 0.08),
+    ];
+    for (int i = 0; i < positions.length; i++) {
+      final phase = (progress + i * 0.5) % 1.0;
+      final alpha = (sin(phase * pi) * 0.5).clamp(0.0, 0.5);
+      canvas.drawOval(
+        Rect.fromCenter(center: positions[i], width: size.width * 0.14, height: size.width * 0.08),
+        Paint()..color = const Color(0xFFE8A0B8).withValues(alpha: alpha),
+      );
+    }
+  }
+
+  void _drawSweatDrops(Canvas canvas, double cx, double cy, Size size) {
+    final xPositions = [cx + size.width * 0.28, cx + size.width * 0.35];
+    for (int i = 0; i < xPositions.length; i++) {
+      final phase = (progress + i * 0.5) % 1.0;
+      final dy = phase * size.height * 0.3;
+      final alpha = (1.0 - phase * 0.8).clamp(0.0, 1.0);
+      final paint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: alpha * 0.75);
+      final x = xPositions[i];
+      final y = cy - size.height * 0.1 + dy;
+      final path = Path()
+        ..moveTo(x, y - size.width * 0.04)
+        ..quadraticBezierTo(x + size.width * 0.025, y, x, y + size.width * 0.035)
+        ..quadraticBezierTo(x - size.width * 0.025, y, x, y - size.width * 0.04);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  void _drawMovedParticles(Canvas canvas, double cx, double cy, Size size) {
+    final positions = [
+      Offset(cx - size.width * 0.32, cy - size.height * 0.08),
+      Offset(cx + size.width * 0.3, cy - size.height * 0.05),
+      Offset(cx + size.width * 0.12, cy + size.height * 0.12),
+    ];
+    for (int i = 0; i < positions.length; i++) {
+      final phase = (progress + i * 0.33) % 1.0;
+      final alpha = (sin(phase * pi)).clamp(0.0, 1.0);
+      final paint = Paint()..color = const Color(0xFF98C8A8).withValues(alpha: alpha * 0.8);
+      _drawStar(canvas, positions[i], size.width * 0.038, paint);
+    }
+  }
+
+  void _drawRisingStars(Canvas canvas, double cx, double cy, Size size) {
+    final xPositions = [cx - size.width * 0.28, cx + size.width * 0.28, cx - size.width * 0.08];
+    for (int i = 0; i < xPositions.length; i++) {
+      final phase = (progress + i * 0.33) % 1.0;
+      final dy = -phase * size.height * 0.32;
+      final alpha = (sin(phase * pi)).clamp(0.0, 1.0);
+      final paint = Paint()..color = const Color(0xFF78C8E0).withValues(alpha: alpha * 0.9);
+      _drawStar(canvas, Offset(xPositions[i], cy + dy), size.width * 0.042, paint);
     }
   }
 
@@ -653,6 +743,42 @@ class _MuziBodyPainter extends CustomPainter {
         _drawAngryEye(canvas, Offset(cx + w * 0.16, eyeY), w, false);
         break;
 
+      // 부끄러움: 작고 수줍은 눈
+      case EmotionType.shy:
+        _drawShyEye(canvas, Offset(cx - w * 0.16, eyeY), w);
+        _drawShyEye(canvas, Offset(cx + w * 0.16, eyeY), w);
+        break;
+
+      // 불안: 동그랗게 뜬 걱정스러운 눈
+      case EmotionType.anxious:
+        _drawAnxiousEye(canvas, Offset(cx - w * 0.16, eyeY), w);
+        _drawAnxiousEye(canvas, Offset(cx + w * 0.16, eyeY), w);
+        break;
+
+      // 감동: 촉촉한 눈 + 반짝임
+      case EmotionType.moved:
+        _drawMovedEye(canvas, Offset(cx - w * 0.16, eyeY), w, true);
+        _drawMovedEye(canvas, Offset(cx + w * 0.16, eyeY), w, false);
+        break;
+
+      // 외로움: 살짝 옆을 보는 눈
+      case EmotionType.lonely:
+        _drawLonelyEye(canvas, Offset(cx - w * 0.16, eyeY), w, false);
+        _drawLonelyEye(canvas, Offset(cx + w * 0.16, eyeY), w, true);
+        break;
+
+      // 지루함: 반쯤 감긴 무거운 눈
+      case EmotionType.bored:
+        _drawBoredEye(canvas, Offset(cx - w * 0.16, eyeY), w);
+        _drawBoredEye(canvas, Offset(cx + w * 0.16, eyeY), w);
+        break;
+
+      // 희망: 밝고 빛나는 눈
+      case EmotionType.hopeful:
+        _drawHopefulEye(canvas, Offset(cx - w * 0.16, eyeY), w);
+        _drawHopefulEye(canvas, Offset(cx + w * 0.16, eyeY), w);
+        break;
+
       // 기본 눈
       default:
         _drawDefaultEye(canvas, Offset(cx - w * 0.16, eyeY), w);
@@ -726,49 +852,33 @@ class _MuziBodyPainter extends CustomPainter {
     canvas.restore();
   }
 
-  // 그리움 눈: 왼쪽=촉촉한 눈, 오른쪽=살짝 윙크 (꿈꾸는 표정)
+  // 그리움 눈: 양쪽 촉촉하게 반짝이는 눈, 왼쪽에만 눈물 한 방울
   void _drawNostalgicEye(Canvas canvas, Offset center, double w, bool isLeft) {
-    if (!isLeft) {
-      // 오른쪽: 살짝 윙크 (∪ 모양)
-      final paint = Paint()
-        ..color = const Color(0xFF5C3D2E)
-        ..strokeWidth = w * 0.038
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-      final path = Path()
-        ..moveTo(center.dx - w * 0.07, center.dy - w * 0.015)
-        ..quadraticBezierTo(center.dx, center.dy + w * 0.065, center.dx + w * 0.07, center.dy - w * 0.015);
-      canvas.drawPath(path, paint);
-      return;
-    }
-
-    // 왼쪽: 촉촉하게 반짝이는 눈
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.drawOval(
       Rect.fromCenter(center: Offset.zero, width: w * 0.15, height: w * 0.17),
       Paint()..color = Colors.white,
     );
-    // 파란 눈물 기운
     canvas.drawOval(
       Rect.fromCenter(center: Offset(0, w * 0.02), width: w * 0.11, height: w * 0.09),
       Paint()..color = const Color(0xFFDFEFFF),
     );
     canvas.drawCircle(Offset(0, w * 0.02), w * 0.065, Paint()..color = const Color(0xFF5C3D2E));
-    // 큰 반짝임 (촉촉한 눈)
-    canvas.drawCircle(Offset(w * 0.025, -w * 0.025), w * 0.038,
+    canvas.drawCircle(Offset(w * 0.025, -w * 0.025), w * 0.035,
         Paint()..color = Colors.white.withValues(alpha: 0.95));
-    canvas.drawCircle(Offset(-w * 0.02, w * 0.02), w * 0.018,
+    canvas.drawCircle(Offset(-w * 0.02, w * 0.02), w * 0.016,
         Paint()..color = Colors.white.withValues(alpha: 0.7));
     canvas.restore();
 
-    // 눈물 한 방울
-    final tearPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.8);
-    final tearPath = Path()
-      ..moveTo(center.dx, center.dy + w * 0.09)
-      ..quadraticBezierTo(center.dx + w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.18)
-      ..quadraticBezierTo(center.dx - w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.09);
-    canvas.drawPath(tearPath, tearPaint);
+    if (isLeft) {
+      final tearPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.8);
+      final tearPath = Path()
+        ..moveTo(center.dx, center.dy + w * 0.09)
+        ..quadraticBezierTo(center.dx + w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.18)
+        ..quadraticBezierTo(center.dx - w * 0.028, center.dy + w * 0.14, center.dx, center.dy + w * 0.09);
+      canvas.drawPath(tearPath, tearPaint);
+    }
   }
 
   // 작은 점 눈 (편안함) — ･ω･ 느낌의 귀여운 점 눈
@@ -890,6 +1000,119 @@ class _MuziBodyPainter extends CustomPainter {
     canvas.restore();
   }
 
+  // 수줍은 눈 (부끄러움) — 살짝 아래를 보는 작은 눈
+  void _drawShyEye(Canvas canvas, Offset center, double w) {
+    final blink = blinkAnim.value;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.scale(1.0, blink);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.13, height: w * 0.14),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(Offset(0, w * 0.025), w * 0.052, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(w * 0.015, w * 0.01), w * 0.018, Paint()..color = Colors.white);
+    canvas.restore();
+  }
+
+  // 걱정스러운 눈 (불안) — 동그랗게 뜬 눈, 작은 동공
+  void _drawAnxiousEye(Canvas canvas, Offset center, double w) {
+    final blink = blinkAnim.value;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.scale(1.0, blink);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.16, height: w * 0.18),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(Offset(0, w * 0.01), w * 0.055, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(w * 0.02, -w * 0.01), w * 0.02, Paint()..color = Colors.white);
+    canvas.restore();
+  }
+
+  // 감동받은 눈 (감동) — 촉촉하고 반짝이는 눈, 눈물 한 방울
+  void _drawMovedEye(Canvas canvas, Offset center, double w, bool isLeft) {
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.15, height: w * 0.17),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(0, w * 0.02), width: w * 0.11, height: w * 0.09),
+      Paint()..color = const Color(0xFFE0F0FF),
+    );
+    canvas.drawCircle(Offset(0, w * 0.01), w * 0.065, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(w * 0.03, -w * 0.03), w * 0.03,
+        Paint()..color = Colors.white.withValues(alpha: 0.95));
+    canvas.drawCircle(Offset(-w * 0.02, w * 0.01), w * 0.015,
+        Paint()..color = Colors.white.withValues(alpha: 0.7));
+    canvas.restore();
+    if (isLeft) {
+      final tearPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.7);
+      final tearPath = Path()
+        ..moveTo(center.dx, center.dy + w * 0.09)
+        ..quadraticBezierTo(center.dx + w * 0.025, center.dy + w * 0.13, center.dx, center.dy + w * 0.17)
+        ..quadraticBezierTo(center.dx - w * 0.025, center.dy + w * 0.13, center.dx, center.dy + w * 0.09);
+      canvas.drawPath(tearPath, tearPaint);
+    }
+  }
+
+  // 옆을 보는 눈 (외로움) — 시선이 바깥쪽을 향함 + 살짝 처진 눈꺼풀
+  void _drawLonelyEye(Canvas canvas, Offset center, double w, bool lookRight) {
+    final blink = blinkAnim.value;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.scale(1.0, blink);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.14, height: w * 0.15),
+      Paint()..color = Colors.white,
+    );
+    final pupilDx = lookRight ? w * 0.03 : -w * 0.03;
+    canvas.drawCircle(Offset(pupilDx, w * 0.02), w * 0.057, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(pupilDx + w * 0.015, 0), w * 0.018, Paint()..color = Colors.white);
+    // 살짝 처진 눈꺼풀
+    canvas.drawRect(Rect.fromLTWH(-w * 0.09, -w * 0.09, w * 0.18, w * 0.035), Paint()..color = bodyColor);
+    canvas.restore();
+  }
+
+  // 반쯤 감긴 눈 (지루함) — 무기력하게 처진 눈꺼풀
+  void _drawBoredEye(Canvas canvas, Offset center, double w) {
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.14, height: w * 0.14),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(Offset(0, w * 0.02), w * 0.052, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(w * 0.015, w * 0.01), w * 0.016, Paint()..color = Colors.white);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(-w * 0.09, -w * 0.09, w * 0.18, w * 0.1),
+        bottomLeft: const Radius.circular(5),
+        bottomRight: const Radius.circular(5),
+      ),
+      Paint()..color = bodyColor,
+    );
+    canvas.restore();
+  }
+
+  // 밝게 빛나는 눈 (희망) — 위를 향한 시선, 큰 하이라이트
+  void _drawHopefulEye(Canvas canvas, Offset center, double w) {
+    final blink = blinkAnim.value;
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.scale(1.0, blink);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: w * 0.15, height: w * 0.17),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(Offset(0, -w * 0.01), w * 0.065, Paint()..color = const Color(0xFF5C3D2E));
+    canvas.drawCircle(Offset(w * 0.025, -w * 0.03), w * 0.028, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(-w * 0.02, w * 0.015), w * 0.014, Paint()..color = Colors.white);
+    canvas.restore();
+  }
+
   // ── 눈썹 / 이마 특수 효과 ────────────────────────────
   void _drawBrowsAndExtra(Canvas canvas, Size size, double cx, double eyeY) {
     final w = size.width;
@@ -995,6 +1218,85 @@ class _MuziBodyPainter extends CustomPainter {
         canvas.drawPath(eyeBrowPath2, browPaint);
         break;
 
+      case EmotionType.shy:
+        // 부드럽게 내려온 눈썹 (수줍음)
+        final browPaint = Paint()
+          ..color = const Color(0xFF5C3D2E).withValues(alpha: 0.5)
+          ..strokeWidth = w * 0.024
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        final p1 = Path()
+          ..moveTo(cx - w * 0.25, eyeY - w * 0.1)
+          ..quadraticBezierTo(cx - w * 0.17, eyeY - w * 0.12, cx - w * 0.1, eyeY - w * 0.1);
+        final p2 = Path()
+          ..moveTo(cx + w * 0.1, eyeY - w * 0.1)
+          ..quadraticBezierTo(cx + w * 0.17, eyeY - w * 0.12, cx + w * 0.25, eyeY - w * 0.1);
+        canvas.drawPath(p1, browPaint);
+        canvas.drawPath(p2, browPaint);
+        break;
+
+      case EmotionType.anxious:
+        // 중앙이 올라간 걱정스러운 눈썹
+        final browPaint = Paint()
+          ..color = const Color(0xFF5C3D2E).withValues(alpha: 0.65)
+          ..strokeWidth = w * 0.028
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(
+          Offset(cx - w * 0.26, eyeY - w * 0.1),
+          Offset(cx - w * 0.1, eyeY - w * 0.14),
+          browPaint,
+        );
+        canvas.drawLine(
+          Offset(cx + w * 0.26, eyeY - w * 0.1),
+          Offset(cx + w * 0.1, eyeY - w * 0.14),
+          browPaint,
+        );
+        // 땀방울
+        final sweatPaint = Paint()..color = const Color(0xFF9EC4E8).withValues(alpha: 0.85);
+        final sweatPath = Path()
+          ..moveTo(cx + w * 0.3, eyeY - w * 0.18)
+          ..quadraticBezierTo(cx + w * 0.34, eyeY - w * 0.12, cx + w * 0.3, eyeY - w * 0.08)
+          ..quadraticBezierTo(cx + w * 0.26, eyeY - w * 0.12, cx + w * 0.3, eyeY - w * 0.18);
+        canvas.drawPath(sweatPath, sweatPaint);
+        break;
+
+      case EmotionType.lonely:
+        // 바깥쪽이 살짝 내려간 눈썹
+        final browPaint = Paint()
+          ..color = const Color(0xFF5C3D2E).withValues(alpha: 0.5)
+          ..strokeWidth = w * 0.025
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(
+          Offset(cx - w * 0.26, eyeY - w * 0.08),
+          Offset(cx - w * 0.1, eyeY - w * 0.12),
+          browPaint,
+        );
+        canvas.drawLine(
+          Offset(cx + w * 0.26, eyeY - w * 0.08),
+          Offset(cx + w * 0.1, eyeY - w * 0.12),
+          browPaint,
+        );
+        break;
+
+      case EmotionType.hopeful:
+        // 살짝 올라간 기대에 찬 눈썹
+        final browPaint = Paint()
+          ..color = const Color(0xFF5C3D2E).withValues(alpha: 0.55)
+          ..strokeWidth = w * 0.025
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        final ep1 = Path()
+          ..moveTo(cx - w * 0.25, eyeY - w * 0.13)
+          ..quadraticBezierTo(cx - w * 0.17, eyeY - w * 0.17, cx - w * 0.1, eyeY - w * 0.13);
+        final ep2 = Path()
+          ..moveTo(cx + w * 0.1, eyeY - w * 0.13)
+          ..quadraticBezierTo(cx + w * 0.17, eyeY - w * 0.17, cx + w * 0.25, eyeY - w * 0.13);
+        canvas.drawPath(ep1, browPaint);
+        canvas.drawPath(ep2, browPaint);
+        break;
+
       default:
         break;
     }
@@ -1032,32 +1334,19 @@ class _MuziBodyPainter extends CustomPainter {
             Paint()..color = Colors.grey.shade200..strokeWidth = w * 0.015..style = PaintingStyle.stroke);
         break;
 
-      // 즐거움: 얼굴 절반 웃는 입 + 치아 확실히 보임
+      // 즐거움: 크게 웃는 입 (치아 심플하게)
       case EmotionType.joyful:
         final outerPath = Path()
-          ..moveTo(cx - w * 0.25, mouthY - w * 0.01)
-          ..quadraticBezierTo(cx, mouthY + w * 0.21, cx + w * 0.25, mouthY - w * 0.01);
-        canvas.drawPath(outerPath, strokePaint..strokeWidth = w * 0.038);
-        // 치아 칸 (더 넓게)
+          ..moveTo(cx - w * 0.21, mouthY)
+          ..quadraticBezierTo(cx, mouthY + w * 0.17, cx + w * 0.21, mouthY);
+        canvas.drawPath(outerPath, strokePaint..strokeWidth = w * 0.034);
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(cx, mouthY + w * 0.07), width: w * 0.34, height: w * 0.13),
+            Rect.fromCenter(center: Offset(cx, mouthY + w * 0.065), width: w * 0.28, height: w * 0.10),
             const Radius.circular(5),
           ),
           Paint()..color = Colors.white,
         );
-        // 치아 구분선 3개
-        final tLinePaint = Paint()
-          ..color = Colors.grey.shade300
-          ..strokeWidth = w * 0.012
-          ..style = PaintingStyle.stroke;
-        for (final dx in [-w * 0.09, 0.0, w * 0.09]) {
-          canvas.drawLine(
-            Offset(cx + dx, mouthY + w * 0.01),
-            Offset(cx + dx, mouthY + w * 0.13),
-            tLinePaint,
-          );
-        }
         break;
 
       // 행복: 따뜻한 미소
@@ -1167,6 +1456,62 @@ class _MuziBodyPainter extends CustomPainter {
         }
         break;
 
+      // 부끄러움: 작고 수줍은 미소
+      case EmotionType.shy:
+        final shyPath = Path()
+          ..moveTo(cx - w * 0.1, mouthY + w * 0.01)
+          ..quadraticBezierTo(cx, mouthY + w * 0.07, cx + w * 0.1, mouthY + w * 0.01);
+        canvas.drawPath(shyPath, strokePaint..strokeWidth = w * 0.026);
+        break;
+
+      // 불안: 살짝 떨리는 물결 입
+      case EmotionType.anxious:
+        final anxPath = Path()..moveTo(cx - w * 0.13, mouthY);
+        anxPath.quadraticBezierTo(cx - w * 0.04, mouthY + w * 0.03, cx, mouthY);
+        anxPath.quadraticBezierTo(cx + w * 0.04, mouthY - w * 0.03, cx + w * 0.13, mouthY);
+        canvas.drawPath(anxPath, strokePaint..strokeWidth = w * 0.025);
+        break;
+
+      // 감동: 살짝 떨리는 감동 미소
+      case EmotionType.moved:
+        final movedPath = Path()
+          ..moveTo(cx - w * 0.15, mouthY)
+          ..quadraticBezierTo(cx, mouthY + w * 0.09, cx + w * 0.15, mouthY);
+        canvas.drawPath(movedPath, strokePaint);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(cx, mouthY + w * 0.035), width: w * 0.18, height: w * 0.065),
+            const Radius.circular(4),
+          ),
+          Paint()..color = Colors.white,
+        );
+        break;
+
+      // 외로움: 미세하게 내려간 입꼬리
+      case EmotionType.lonely:
+        final lonelyPath = Path()
+          ..moveTo(cx - w * 0.11, mouthY - w * 0.005)
+          ..quadraticBezierTo(cx, mouthY + w * 0.022, cx + w * 0.11, mouthY - w * 0.005);
+        canvas.drawPath(lonelyPath, strokePaint..strokeWidth = w * 0.025);
+        break;
+
+      // 지루함: 완전 일자 입
+      case EmotionType.bored:
+        canvas.drawLine(
+          Offset(cx - w * 0.11, mouthY),
+          Offset(cx + w * 0.11, mouthY),
+          strokePaint..strokeWidth = w * 0.024,
+        );
+        break;
+
+      // 희망: 밝고 작은 미소
+      case EmotionType.hopeful:
+        final hopePath = Path()
+          ..moveTo(cx - w * 0.14, mouthY + w * 0.01)
+          ..quadraticBezierTo(cx, mouthY + w * 0.09, cx + w * 0.14, mouthY + w * 0.01);
+        canvas.drawPath(hopePath, strokePaint);
+        break;
+
       default:
         final path = Path()
           ..moveTo(cx - w * 0.14, mouthY - w * 0.01)
@@ -1204,6 +1549,27 @@ class _MuziBodyPainter extends CustomPainter {
       case EmotionType.calm:
         alpha = 0.22;
         blushColor = const Color(0xFF8EBD98);
+        break;
+      case EmotionType.shy:
+        alpha = 0.55;
+        blushColor = const Color(0xFFE8A0B8);
+        break;
+      case EmotionType.moved:
+        alpha = 0.28;
+        blushColor = const Color(0xFF98C0A8);
+        break;
+      case EmotionType.hopeful:
+        alpha = 0.25;
+        blushColor = const Color(0xFF78B8D0);
+        break;
+      case EmotionType.lonely:
+      case EmotionType.bored:
+        alpha = 0.12;
+        blushColor = const Color(0xFFAA9688);
+        break;
+      case EmotionType.anxious:
+        alpha = 0.2;
+        blushColor = const Color(0xFF94A8C0);
         break;
       default:
         alpha = 0.25;

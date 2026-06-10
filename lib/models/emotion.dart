@@ -10,6 +10,12 @@ enum EmotionType {
   miserable,  // 비참
   tired,      // 지침
   angry,      // 화남
+  shy,        // 부끄러움
+  anxious,    // 불안
+  moved,      // 감동
+  lonely,     // 외로움
+  bored,      // 지루함
+  hopeful,    // 희망
 }
 
 class Emotion {
@@ -123,6 +129,66 @@ class Emotion {
       keywords: ['화나', '짜증', '열받', '분노', '억울', '불공평', '싫어'],
       comfortMessage: '많이 화가 났군요 🔥\n깊게 숨을 들이쉬어 보세요. 이 감정도 괜찮아요.',
       musicKeywords: ['화날 때 듣는 노래', '스트레스 해소 한국 음악', '강렬한 케이팝'],
+    ),
+    Emotion(
+      type: EmotionType.shy,
+      label: '부끄러움',
+      emoji: '🫣',
+      color: Color(0xFFE8A0B8),   // 소프트 핑크
+      lightColor: Color(0xFFFAEDF2),
+      keywords: ['부끄', '쑥스럽', '창피', '수줍', '민망', '얼굴빨개', '어색'],
+      comfortMessage: '그 수줍음, 사실 정말 귀여워요 🌸\n설레는 마음 아닌가요?',
+      musicKeywords: ['수줍은 감성 한국 노래', '설레는 잔잔한 발라드', '부끄러운 느낌 케이팝'],
+    ),
+    Emotion(
+      type: EmotionType.anxious,
+      label: '불안',
+      emoji: '😟',
+      color: Color(0xFF94A8C0),   // 스틸 블루-그레이
+      lightColor: Color(0xFFECEFF4),
+      keywords: ['불안', '걱정', '긴장', '두려', '떨려', '무서', '초조'],
+      comfortMessage: '지금 많이 불안한가요 💙\n괜찮아요, 이 순간도 지나가요. 천천히 숨을 쉬어요.',
+      musicKeywords: ['불안할 때 듣는 노래', '마음 안정되는 한국 음악', '긴장 풀리는 힐링 노래'],
+    ),
+    Emotion(
+      type: EmotionType.moved,
+      label: '감동',
+      emoji: '🥹',
+      color: Color(0xFF98C0A8),   // 민트 그레이
+      lightColor: Color(0xFFEAF4EE),
+      keywords: ['감동', '뭉클', '눈물날것', '감사', '벅차', '울컥', '감격'],
+      comfortMessage: '마음이 벅차오르는 하루였군요 🥹\n그 감동을 오래 간직하세요.',
+      musicKeywords: ['감동적인 한국 노래', '뭉클한 발라드 명곡', '눈물 나는 감성 케이팝'],
+    ),
+    Emotion(
+      type: EmotionType.lonely,
+      label: '외로움',
+      emoji: '😔',
+      color: Color(0xFF8898B8),   // 더스티 코른플라워
+      lightColor: Color(0xFFEBEEF4),
+      keywords: ['외롭', '혼자', '쓸쓸', '심심', '고독', '아무도', '소외'],
+      comfortMessage: '지금 조금 혼자인 기분이군요 🌙\n뮤지가 옆에 있을게요. 음악 들으면서 같이 있어요.',
+      musicKeywords: ['혼자일 때 듣는 노래 한국', '외로울 때 감성 발라드', '쓸쓸한 새벽 노래'],
+    ),
+    Emotion(
+      type: EmotionType.bored,
+      label: '지루함',
+      emoji: '😑',
+      color: Color(0xFFB0A8A0),   // 웜 그레이
+      lightColor: Color(0xFFF0EEEC),
+      keywords: ['지루', '심심', '무료', '따분', '별로', '흥미없', '할게없'],
+      comfortMessage: '지루한 하루였나요 😑\n뮤지가 분위기 바꿔줄 노래 찾았어요!',
+      musicKeywords: ['기분 전환 한국 노래', '활기찬 케이팝 추천', '심심할 때 신나는 노래'],
+    ),
+    Emotion(
+      type: EmotionType.hopeful,
+      label: '희망',
+      emoji: '✨',
+      color: Color(0xFF78B8D0),   // 스카이 틸
+      lightColor: Color(0xFFE4F2F6),
+      keywords: ['희망', '기대', '꿈', '할수있', '잘될', '좋아질', '파이팅'],
+      comfortMessage: '희망찬 마음이 느껴져요 ✨\n그 긍정 에너지, 정말 멋져요!',
+      musicKeywords: ['희망적인 한국 노래', '기분 좋아지는 케이팝', '응원 노래 한국 감성'],
     ),
   ];
 
