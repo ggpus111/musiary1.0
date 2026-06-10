@@ -499,11 +499,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── 회원 탈퇴 ────────────────────────────────────────
+  // ── 로그인 방식 확인 ──────────────────────────────────
+  String? get loginProvider {
+    final providers = _auth.currentUser?.providerData.map((p) => p.providerId).toList() ?? [];
+    if (providers.contains('google.com')) return 'google';
+    if (providers.contains('password')) return 'password';
+    return null;
+  }
+
+  // ── 회원 탈퇴 (재인증 포함) ───────────────────────────
   Future<bool> deleteAccount() async {
     if (_user == null) return false;
     try {
-      // 개인정보보호법 제36조: 정보주체의 삭제 권리
       await _db.collection('users').doc(_user!.uid).delete();
       if (_user!.phoneNumber != null) {
         await _db.collection('phone_index')
@@ -515,6 +522,59 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = '회원 탈퇴 중 오류가 발생했어요. 재로그인 후 다시 시도해주세요.';
       notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> reauthAndDeleteAccount({String? password}) async {
+    if (_user == null) return false;
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser == null) return false;
+
+      final provider = loginProvider;
+      if (provider == 'google') {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          _setLoading(false);
+          return false;
+        }
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await firebaseUser.reauthenticateWithCredential(credential);
+      } else if (provider == 'password' && password != null) {
+        final credential = EmailAuthProvider.credential(
+          email: _user!.email,
+          password: password,
+        );
+        await firebaseUser.reauthenticateWithCredential(credential);
+      }
+
+      await _db.collection('users').doc(_user!.uid).delete();
+      if (_user!.phoneNumber != null) {
+        await _db.collection('phone_index')
+            .doc(_normalizePhone(_user!.phoneNumber!))
+            .delete();
+      }
+      await firebaseUser.delete();
+      _user = null;
+      _status = AuthStatus.unauthenticated;
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = e.code == 'wrong-password'
+          ? '비밀번호가 틀렸어요.'
+          : '인증에 실패했어요. 다시 시도해주세요.';
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _errorMessage = '회원 탈퇴 중 오류가 발생했어요.';
+      _setLoading(false);
       return false;
     }
   }

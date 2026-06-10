@@ -529,6 +529,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await auth.signOut();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
+                );
+              }
             },
             child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
           ),
@@ -538,24 +544,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog(AuthProvider auth) {
+    final provider = auth.loginProvider;
+    if (provider == 'password') {
+      _showEmailReauthDeleteDialog(auth);
+    } else if (provider == 'google') {
+      _showGoogleReauthDeleteDialog(auth);
+    } else {
+      // fallback
+      _showSimpleDeleteDialog(auth);
+    }
+  }
+
+  void _showEmailReauthDeleteDialog(AuthProvider auth) {
+    final passwordCtrl = TextEditingController();
+    bool obscure = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('회원 탈퇴 확인'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '탈퇴하면 모든 데이터가 영구 삭제됩니다.\n본인 확인을 위해 비밀번호를 입력해주세요.',
+                style: TextStyle(fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordCtrl,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: '비밀번호',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    onPressed: () => setDlgState(() => obscure = !obscure),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소'),
+            ),
+            Consumer<AuthProvider>(
+              builder: (context2, auth2, child2) => TextButton(
+                onPressed: auth2.isLoading
+                    ? null
+                    : () async {
+                        if (passwordCtrl.text.isEmpty) return;
+                        Navigator.pop(ctx);
+                        final success = await auth.reauthAndDeleteAccount(
+                          password: passwordCtrl.text,
+                        );
+                        if (!mounted) return;
+                        if (success) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/login',
+                            (route) => false,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(auth.errorMessage ?? '탈퇴 처리 중 오류가 발생했어요.'),
+                              backgroundColor: Colors.red.shade400,
+                            ),
+                          );
+                        }
+                      },
+                child: auth2.isLoading
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGoogleReauthDeleteDialog(AuthProvider auth) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('회원 탈퇴'),
-        content: const Text(
-          '정말로 탈퇴하시겠어요?\n\n'
-          '탈퇴 시 모든 일기 데이터와 계정 정보가\n'
-          '영구적으로 삭제됩니다.\n\n'
-          '(개인정보보호법 제36조에 따른 삭제권 행사)',
+        title: const Text('회원 탈퇴 확인'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '탈퇴하면 모든 데이터가 영구 삭제됩니다.\n'
+              'Google 계정으로 본인 확인 후 진행됩니다.',
+              style: TextStyle(fontSize: 13, height: 1.5),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              final success = await auth.reauthAndDeleteAccount();
+              if (!mounted) return;
+              if (success) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(auth.errorMessage ?? '탈퇴 처리 중 오류가 발생했어요.'),
+                    backgroundColor: Colors.red.shade400,
+                  ),
+                );
+              }
+            },
+            child: const Text('Google로 확인 후 탈퇴', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSimpleDeleteDialog(AuthProvider auth) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('회원 탈퇴'),
+        content: const Text('정말로 탈퇴하시겠어요?\n탈퇴 시 모든 데이터가 영구 삭제됩니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
               final success = await auth.deleteAccount();
-              if (!success && mounted) {
+              if (!mounted) return;
+              if (success) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(auth.errorMessage ?? '탈퇴 처리 중 오류가 발생했어요.'),

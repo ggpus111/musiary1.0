@@ -309,34 +309,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Row(
       children: [
-        _statChip(Icons.auto_awesome_rounded, 'Lv.$level', '레벨', const Color(0xFFBB86FC)),
+        _statChip(Icons.auto_awesome_rounded, 'Lv.$level', '레벨',
+            const Color(0xFF7B3FC4), const Color(0xFFF0E6FF)),
         const SizedBox(width: 8),
-        _statChip(Icons.book_rounded, '$totalEntries', '일기', const Color(0xFF82B8F8)),
+        _statChip(Icons.book_rounded, '$totalEntries', '일기',
+            const Color(0xFF2E7DC8), const Color(0xFFE3F0FF)),
         const SizedBox(width: 8),
-        _statChip(Icons.local_fire_department_rounded, '$streak일', '연속', const Color(0xFFFF8C6B)),
+        _statChip(Icons.local_fire_department_rounded, '$streak일', '연속',
+            const Color(0xFFD45B2A), const Color(0xFFFFEDE6)),
       ],
     );
   }
 
-  Widget _statChip(IconData icon, String value, String label, Color color) {
+  Widget _statChip(IconData icon, String value, String label, Color fg, Color bg) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: bg,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 16, color: color),
+            Icon(icon, size: 16, color: fg),
             const SizedBox(height: 3),
             Text(
               value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: fg),
             ),
             Text(
               label,
-              style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.75)),
+              style: TextStyle(
+                fontSize: 10,
+                color: fg.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
