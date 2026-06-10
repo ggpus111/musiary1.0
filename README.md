@@ -16,7 +16,7 @@
 
 ## 📱 실행 영상
 
-https://github.com/ggpus111/musiary1.0/raw/main/Screen/실행영상.mp4
+https://github.com/ggpus111/musiary1.0/raw/main/Screen/실행영상(6.10.).mp4
 
 > ▶ 위 링크 클릭 시 영상을 바로 볼 수 있어요
 
