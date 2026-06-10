@@ -223,42 +223,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // ── 하단: 옷장 + 메시지 + 버튼 ───────────────────
+          // ── 하단: 스탯 + 옷장 + 버튼 ────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-            child: Consumer<AuthProvider>(
-              builder: (context, auth, _) => Column(
+            child: Consumer2<AuthProvider, DiaryProvider>(
+              builder: (context, auth, diary, _) => Column(
                 children: [
-                  // 옷장 (장착 아이템 표시)
+                  // 핵심 스탯 3개
+                  _buildHeroStats(auth, diary),
+                  const SizedBox(height: 10),
+
+                  // 옷장
                   _buildWardrobeRow(auth),
-                  const SizedBox(height: 12),
-
-                  // 오늘 일기 스니펫 or 안내
-                  if (todayEntry != null)
-                    Text(
-                      todayEntry.content.length > 55
-                          ? '${todayEntry.content.substring(0, 55)}...'
-                          : todayEntry.content,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                        height: 1.6,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                    )
-                  else
-                    const Text(
-                      '일기를 써봐요!\n내 감정에 딱 맞는 노래를 골라줄게요 🎶',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                        height: 1.6,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
                   // 액션 버튼
                   GestureDetector(
@@ -281,20 +258,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 13),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
                         color: accentColor,
-                        borderRadius: BorderRadius.circular(26),
+                        borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: accentColor.withValues(alpha: 0.4),
-                            blurRadius: 14,
-                            offset: const Offset(0, 5),
+                            color: accentColor.withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             emotion != null ? Icons.music_note_rounded : Icons.edit_rounded,
@@ -321,6 +299,67 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  // ── 핵심 스탯 (히어로 내부) ───────────────────────────
+  Widget _buildHeroStats(AuthProvider auth, DiaryProvider diary) {
+    final level = diary.muziProfile.level;
+    final totalEntries = diary.entries.length;
+    final streak = _calcStreak(diary.entries);
+
+    return Row(
+      children: [
+        _statChip(Icons.auto_awesome_rounded, 'Lv.$level', '레벨', const Color(0xFFBB86FC)),
+        const SizedBox(width: 8),
+        _statChip(Icons.book_rounded, '$totalEntries', '일기', const Color(0xFF82B8F8)),
+        const SizedBox(width: 8),
+        _statChip(Icons.local_fire_department_rounded, '$streak일', '연속', const Color(0xFFFF8C6B)),
+      ],
+    );
+  }
+
+  Widget _statChip(IconData icon, String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.75)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _calcStreak(List<DiaryEntry> entries) {
+    if (entries.isEmpty) return 0;
+    final sorted = [...entries]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final today = DateTime.now();
+    int streak = 0;
+    DateTime check = DateTime(today.year, today.month, today.day);
+    for (final e in sorted) {
+      final d = DateTime(e.createdAt.year, e.createdAt.month, e.createdAt.day);
+      if (d == check) {
+        streak++;
+        check = check.subtract(const Duration(days: 1));
+      } else if (d.isBefore(check)) {
+        break;
+      }
+    }
+    return streak;
   }
 
   // ── 옷장 위젯 ─────────────────────────────────────────
